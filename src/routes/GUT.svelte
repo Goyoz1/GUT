@@ -1,6 +1,8 @@
-
 <script>
 	import { spring } from 'svelte/motion';
+	import Step from './Step.svelte';
+
+let oneString = 'test';
 
 	/**
 	 * @param {number} n
@@ -11,23 +13,35 @@
 		return ((n % m) + m) % m;
 	}
 
+	let theStep
+
 	/**
 	 * @param {number} n
 	 */
 	async function getNextStep(n) {
-		const res = await fetch(
-			`https://83od0g6jn7.execute-api.eu-central-1.amazonaws.com/dev/GUT/GY?stepNumber=${n}`
-		);
-		const myStep = await res.json();
-
+		let res;
+		let myStep;
+		try {
+			res = await fetch(`https://83od0g6jn7.execute-api.eu-central-1.amazonaws.com/dev/GUT/GY?stepNumber=${n}`);
+		} catch(e) {console.error(e);return null;}
 		if (res.ok) {
-			return myStep;
+			//console.log(await res.text());
+			myStep = await res.json()
+				.catch(e => {
+					theStep = null;
+					//console.log('réponse pas OK du tout');
+					return null;});
+			theStep = myStep;
+			//console.log('réponse OK');
+			return theStep; //TODO useful?
 		} else {
-			throw new Error(JSON.stringify(myStep));
+			theStep = null;
+			//console.log('réponse pas OK');
+			//throw new Error(JSON.stringify(myStep));
 		}
 	}
 
-	var promise = getNextStep(0);
+	var promise; // = getNextStep(0);
 
 	let stepNumber = 0;
 	$: promise = getNextStep(stepNumber);
@@ -62,11 +76,12 @@
 <div class="row">
 	{#await promise}
 		<p>...</p>
-	{:then step}
+	{:then _}
+<!--
 		<div class="column">
 			ingredients
 			<ul>
-				{#each step.ingredients as ingredient}
+				{#each theStep.ingredients as ingredient}
 					<li>{ingredient.name}</li>
 				{/each}
 			</ul>
@@ -74,30 +89,36 @@
 		<div class="column">
 			container
 			<ul>
-				{#each step.container as myContainer}
+				{#each theStep.container as myContainer}
 					<li>{myContainer.name}</li>
 				{/each}
 			</ul>
 		</div>
 		<div class="column">
 			operation
-			<p>{step.operation}</p>
+			<p>{theStepOperation}</p>
 		</div>
 		<div class="column">
 			tools
 			<ul>
-				{#each step.tools as myTool}
+				{#each theStep.tools as myTool}
 					<li>{myTool.name}</li>
 				{/each}
 			</ul>
 		</div>
 		<div class="column">
 			operation time
-			<p>{step.operationTime}</p>
+			<p>{theStep.operationTime}</p>
 		</div>
+-->
 	{:catch error}
 		<p style="color: red">Not a valid step?</p>
 	{/await}
+</div>
+<Step bind:theInternalStep={theStep}/>
+--------------------------------
+<div>
+	{JSON.stringify(theStep)}
 </div>
 
 <style>
